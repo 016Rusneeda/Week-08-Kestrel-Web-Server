@@ -9,8 +9,8 @@ builder.Services.AddHostedService<SerialBridgeWorker>();
 var app = builder.Build();
 
 
-// Endpoint หน้าแรก
-app.MapGet("/", () => "IoT Edge Gateway Online! Visit /api/telemetry to view live data.");
+// // Endpoint หน้าแรก
+// app.MapGet("/", () => "IoT Edge Gateway Online! Visit /api/telemetry to view live data.");
 
 // Endpoint สำหรับดึงค่า Telemetry ล่าสุด
 app.MapGet("/api/telemetry", (TelemetryStateStore state) =>
@@ -26,8 +26,7 @@ app.MapGet("/api/telemetry", (TelemetryStateStore state) =>
         timestamp = updated.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     });
 });
-
-
+app.UseFileServer();
 
 app.Run();
 // ============================================================================

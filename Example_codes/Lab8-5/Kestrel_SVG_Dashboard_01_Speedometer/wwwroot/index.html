@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual-Channel IoT Dashboard</title>
+    <style>
+        :root {
+            --bg: #0a0f1d;
+            --card: rgba(16, 24, 40, 0.75);
+            --border: rgba(56, 189, 248, 0.2);
+            --cyan: #00f2fe;
+            --green: #00ffcc;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 15%, #132238 0%, var(--bg) 100%);
+            color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        /* CSS Grid วาง 2 คอลัมน์ รองรับ Responsive บนมือถือ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .widget-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .needle {
+            transition: transform 0.12s cubic-bezier(0.1, 0.8, 0.3, 1);
+            transform-origin: 100px 100px;
+        }
+
+        .led {
+            transition: opacity 0.1s ease, filter 0.1s ease;
+        }
+
+        .seg {
+            fill: #1e293b;
+            opacity: 0.15;
+            transition: opacity 0.08s ease;
+        }
+
+        .seg.active {
+            fill: var(--green);
+            opacity: 1;
+            filter: drop-shadow(0 0 6px var(--green));
+        }
+
+        #water-fill {
+            transition: y 0.15s ease-out, height 0.15s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎛️ Dual-Channel IoT Command Center</h1>
+    <p style="color: #94a3b8; margin-bottom: 20px;">ESP32 Hardware Stream &bull; Kestrel Edge Web Server</p>
+
+    <div class="dashboard-grid">
+        <!-- การ์ดฝั่งซ้าย (เกจ์ที่คำนวณได้จากรหัสนักศึกษา) -->
+        <div class="widget-card" id="card-left">
+            <h3 id="title-left">CH-A: Left Gauge</h3>
+            <div id="container-left">
+                <!-- วางโค้ด SVG เกจ์ตัวแรกที่นี่ -->
+            </div>
+            <p id="val-left" style="font-size: 1.5rem; font-weight: bold; color: var(--cyan);">0.0%</p>
+        </div>
+
+        <!-- การ์ดฝั่งขวา (เกจ์ที่คำนวณได้จากรหัสนักศึกษา) -->
+        <div class="widget-card" id="card-right">
+            <h3 id="title-right">CH-B: Right Gauge</h3>
+            <div id="container-right">
+                <!-- วางโค้ด SVG เกจ์ตัวที่สองที่นี่ -->
+            </div>
+            <p id="val-right" style="font-size: 1.5rem; font-weight: bold; color: var(--cyan);">0.0%</p>
+        </div>
+    </div>
+
+    <script>
+        async function pollTelemetry() {
+            try {
+                const res = await fetch('/api/telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // 1. อัปเดตเกจ์ฝั่งซ้าย ด้วย data.channelA.percentage
+                updateLeftWidget(data.channelA.percentage);
+
+                // 2. อัปเดตเกจ์ฝั่งขวา ด้วย data.channelB.percentage
+                updateRightWidget(data.channelB.percentage);
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        setInterval(pollTelemetry, 150);
+    </script>
+</body>
+
+</html>
