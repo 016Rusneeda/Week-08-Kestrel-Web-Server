@@ -1,62 +1,108 @@
-# Week 08: High-Performance Kestrel Web Server (.NET) vs LAMP Stack & ESP32 Dynamic SVG Telemetry Dashboard
+# Week 08: Edge Web Server Architecture, Minimal API & Interactive SVG IoT Dashboard
 
 ## 1. บทนำ (Introduction)
-ในสัปดาห์ที่ 8 นี้ เราจะเปลี่ยนผ่านจากการใช้สถาปัตยกรรมเว็บดั้งเดิมอย่าง **LAMP Stack (Linux, Apache, MySQL, PHP)** หรือ Web Server ขนาดเล็กบนตัวไมโครคอนโทรลเลอร์ มาสู่การใช้ **Kestrel Web Server (.NET 8/9)** ซึ่งเป็น Cross-platform Asynchronous High-Performance Web Server ระดับอุตสาหกรรมที่ถูกออกแบบมาเพื่อรองรับงาน I/O-bound High-Concurrency Telemetry ของระบบ IoT โดยเฉพาะ
+ในสัปดาห์ที่ 8 นี้ เราจะก้าวข้ามจากการเขียนโปรแกรมควบคุมไมโครคอนโทรลเลอร์แบบ Standalone เข้าสู่โลกของ **"Edge IoT Gateway & Web Server"** ซึ่งเป็นสะพานเชื่อมระหว่างโลกกายภาพ (Physical Hardware) กับโลกดิจิทัล (Web & Cloud Applications)
 
-นอกจากนี้ เราจะได้เรียนรู้การเชื่อมต่อระบบแบบ end-to-end ตั้งแต่การใช้ **ESP32** อ่านค่าสัญญาณแอนะล็อก **Potentiometer (ปรับค่าความต้านทาน)** และ **LDR (วัดความเข้มแสง)** ผ่านวงจร ADC 12-bit แล้วยิงข้อมูลเข้า REST API ผ่านโปรโตคอล HTTP POST/JSON และสร้างหน้า **Web Dashboard** ยุคใหม่ที่แสดงผลค่าสัญญาณแบบเรียลไทม์ด้วย **SVG Radial Gauge** (เกจวัดแบบเข็มไมล์) และ **Audio VU Meter** (มาตรวัดระดับแสงแบบหลอด LED)
+นักศึกษาส่วนใหญ่อาจคุ้นเคยกับโมเดล **LAMP Stack (Linux, Apache, MySQL, PHP)** ซึ่งมีสถาปัตยกรรมที่แยกส่วน ติดตั้งและคอนฟิกซับซ้อน ทว่าในโลกของ Industrial IoT และ Embedded Gateway สมัยใหม่ ความต้องการคือ **High-Performance, Self-Hosted, Single-Binary Application** ที่สามารถทำงานได้รวดเร็ว กินทรัพยากรต่ำ และควบคุม I/O ของเครื่องได้โดยตรง
+
+ในบทเรียนนี้ เราจะใช้ **.NET 8 / Modern C# และ Kestrel Web Server** ในการสร้าง Web Gateway ที่ทรงประสิทธิภาพ สามารถรับส่งข้อมูลผ่าน **HTTP Minimal API**, ดักฟังข้อมูลฮาร์ดแวร์จาก **ESP32 ผ่าน USB Virtual COM Port (UART)** ด้วยสถาปัตยกรรม `BackgroundService` และถ่ายทอดสัญญาณแอนะล็อกสู่หน้าเว็บ **Interactive SVG Dashboard (Speedometer, VU Meter, 7-Segment)** แบบตอบสนองทันที (Near Real-time) ภายใต้แนวคิด **Zero External Dependency** (ไม่พึ่งพาไลบรารีภายนอกหรืออินเทอร์เน็ต)
 
 ---
 
 ## 2. แผนผังเนื้อหาการเรียนรู้ประจำสัปดาห์ (Lesson Roadmap)
 
 ```mermaid
-flowchart LR
-    A["Week 08: Kestrel & IoT Dashboard"] --> B["1. สถาปัตยกรรม Kestrel vs LAMP<br/>(Async I/O & High Concurrency)"]
-    A --> C["2. ติดตั้ง & พัฒนา Minimal API<br/>(.NET SDK & C# REST Endpoints)"]
-    A --> D["3. ออกแบบ SVG Vector Graphics<br/>(Radial Gauge & Dynamic VU Meter)"]
-    A --> E["4. เชื่อมต่อ ESP32 ADC Telemetry<br/>(Potentiometer & LDR via HTTP POST)"]
+flowchart TD
+    A["สัปดาห์ที่ 8: Edge Web Server & IoT Dashboard"] --> B["1. สถาปัตยกรรม Kestrel Web Server<br/>(LAMP vs Modern Self-Hosted Kestrel)"]
+    A --> C["2. HTTP Minimal API & Serialization<br/>(Request-Response & Data Contracts)"]
+    A --> D["3. Hardware Serial Bridge & Background Worker<br/>(System.IO.Ports & Dual-Mode Simulation)"]
+    A --> E["4. Interactive SVG IoT Visualization<br/>(Zero-Dependency Speedo, VU & 7-Segment)"]
 
-    B --> F["05-Labsheet-08-1<br/>ติดตั้ง .NET SDK & สร้าง Kestrel API"]
-    C --> F
-    D --> H["07-Labsheet-08-3<br/>สร้าง Dashboard ด้วย SVG Gauge & VU Meter"]
-    E --> G["06-Labsheet-08-2<br/>ESP32 ADC Telemetry Client"]
+    B --> F["06-Labsheet-08-1<br/>Kestrel Minimal API Fundamentals"]
+    C --> G["07-Labsheet-08-2<br/>ESP32 ADC & Serial Stream"]
+    D --> H["08-Labsheet-08-3<br/>Hardware Serial Bridge to Web"]
+    E --> I["09-Labsheet-08-4<br/>SVG Speedometer & Creative Dashboard"]
 ```
 
 ---
 
 ## 3. รายการเอกสารบทเรียน (Lesson Materials)
 
-1. **[01-Introduction-to-Kestrel-vs-LAMP.md](01-Introduction-to-Kestrel-vs-LAMP.md)** - เปรียบเทียบสถาปัตยกรรม LAMP Stack vs Kestrel (.NET Core), ระบบ Async Thread Pool, Libuv / Socket Layer และการเลือกใช้ Web Server สำหรับ IoT Telemetry
-2. **[02-Dotnet-SDK-Setup-and-Minimal-API.md](02-Dotnet-SDK-Setup-and-Minimal-API.md)** - ขั้นตอนการติดตั้ง .NET SDK, คำสั่ง dotnet CLI, โครงสร้างโปรเจกต์ Minimal API, CORS Policy และการสร้าง In-Memory Telemetry Data Store
-3. **[03-SVG-Gauge-and-VU-Meter-Design.md](03-SVG-Gauge-and-VU-Meter-Design.md)** - ทฤษฎีเวกเตอร์กราฟิก SVG, การคำนวณวงกลมโค้ง (`stroke-dasharray`, `stroke-dashoffset`), การหมุนเข็ม Gauge ด้วย Trigonometry และโครงสร้างหลอดไฟ LED ของ VU Meter
-4. **[04-Glossary.md](04-Glossary.md)** - อภิธานศัพท์และคำย่อทางเทคนิคประจำสัปดาห์ที่ 8 (.NET SDK, Kestrel, Minimal API, ADC Oneshot, SVG Vector, VU Meter, Glassmorphism, CORS)
+1. **[01-Edge-WebServer-and-Kestrel-Architecture.md](01-Edge-WebServer-and-Kestrel-Architecture.md)** - ศึกษาวิวัฒนาการจาก LAMP Stack สู่ Self-hosted Web Server, สถาปัตยกรรมภายใน Kestrel, Non-blocking I/O และการเปรียบเทียบเชิงแนวคิด C Socket vs Modern C#
+2. **[02-HTTP-Protocols-and-Minimal-APIs.md](02-HTTP-Protocols-and-Minimal-APIs.md)** - โครงสร้างโพรโทคอล HTTP, Request-Response Lifecycle, กลไก Minimal API Routing, JSON Serialization และ Data Contracts สำหรับระบบ IoT
+3. **[03-Hardware-to-Server-Bridge-and-Concurrency.md](03-Hardware-to-Server-Bridge-and-Concurrency.md)** - สถาปัตยกรรม `BackgroundService` (IHostedService), การเชื่อมต่อ USB UART ด้วย `System.IO.Ports`, การจัดการ Shared State แบบ Thread-Safe และระบบจำลองสัญญาณอัตโนมัติ (Dual-Mode Simulation)
+4. **[04-SVG-Visualization-and-Realtime-Dashboards.md](04-SVG-Visualization-and-Realtime-Dashboards.md)** - การนำ Scalable Vector Graphics (SVG) มาสร้างแดชบอร์ดเครื่องมือวัด IoT ความละเอียดสูง, การแปลงพิกัดและมุมองศา (Linear Mapping), การทำ Polling และโครงสร้างวิดเจ็ต Speedometer, VU Meter, 7-Segment Display
+5. **[05-Glossary.md](05-Glossary.md)** - อภิธานศัพท์และคำย่อทางเทคนิคประจำสัปดาห์ที่ 8
 
 ---
 
 ## 4. รายการใบงานปฏิบัติการประจำสัปดาห์ (Labsheets)
 
-1. **[05-Labsheet-08-1-Dotnet-Kestrel-Setup.md](05-Labsheet-08-1-Dotnet-Kestrel-Setup.md)** - **ใบงานที่ 8.1** การตรวจสอบ/ติดตั้ง .NET SDK และการจับมือเขียน Kestrel Web Server ด้วย C# Minimal API
-2. **[06-Labsheet-08-2-ESP32-ADC-HTTP-Client.md](06-Labsheet-08-2-ESP32-ADC-HTTP-Client.md)** - **ใบงานที่ 8.2** การต่อวงจร Potentiometer / LDR และเขียนโค้ด ESP32 (ESP-IDF / Arduino C++) อ่านค่า ADC ยิง HTTP POST เข้า Kestrel
-3. **[07-Labsheet-08-3-SVG-Gauge-Dashboard.md](07-Labsheet-08-3-SVG-Gauge-Dashboard.md)** - **ใบงานที่ 8.3** การสร้างหน้าต่าง Web Dashboard แบบ Glassmorphism ที่ขับเคลื่อนด้วย SVG Radial Gauge และ Audio VU Meter แบบเรียลไทม์
+1. **[06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md](06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md)** - **ใบงานที่ 8.1: พื้นฐาน Kestrel Web Server และ Minimal API**  
+   *(สร้างเว็บเซิร์ฟเวอร์ใน 30 วินาที, คืนค่า JSON อัตโนมัติ, พร้อมแบบฝึกหัด Micro-Challenge ป้องกันการคัดลอก)*
+2. **[07-Labsheet-08-2-ESP32-ADC-and-Serial-Stream.md](07-Labsheet-08-2-ESP32-ADC-and-Serial-Stream.md)** - **ใบงานที่ 8.2: การสตรีมสัญญาณแอนะล็อก ESP32 ออกพอร์ตสื่อสารอนุกรม (UART)**  
+   *(ต่อวงจร Potentiometer/LDR, อ่านค่า ADC 12-bit, กรองสัญญาณ และสตรีมข้อมูลออกสาย USB)*
+3. **[08-Labsheet-08-3-Hardware-Serial-Bridge-to-Web.md](08-Labsheet-08-3-Hardware-Serial-Bridge-to-Web.md)** - **ใบงานที่ 8.3: สะพานเชื่อมฮาร์ดแวร์จริงสู่เว็บเซิร์ฟเวอร์ (Hardware Serial Bridge)**  
+   *(ติดตั้ง `System.IO.Ports`, อ่านข้อมูลจาก ESP32 แบบ Background Thread, เสิร์ฟค่าผ่าน `/api/telemetry` หมุนปุ่มปุ๊บเว็บเปลี่ยนปั๊บ)*
+4. **[09-Labsheet-08-4-Interactive-SVG-Speedo-and-Creative-Dashboards.md](09-Labsheet-08-4-Interactive-SVG-Speedo-and-Creative-Dashboards.md)** - **ใบงานที่ 8.4: แดชบอร์ดมาตรวัดความเร็ว SVG และสนามทดลองสร้างสรรค์ (Creative Playground)**  
+   *(สร้างหน้าปัด Speedometer เกจวัดความเร็วกวาดตามมือหมุน พร้อมกิจกรรมเสริมให้เลือกปรับแต่ง VU Meter หรือ 7-Segment Display)*
 
 ---
 
 ## 5. สิ่งที่ต้องเตรียมก่อนเริ่มการทดลอง (Prerequisites)
 
-* **คอมพิวเตอร์ผู้เรียน:**
-  * Windows 10/11, macOS หรือ Linux
-  * ติดตั้ง Visual Studio Code พร้อม Extension **C# Dev Kit** หรือ **C#**
-  * ติดตั้ง **.NET 8.0 SDK** หรือใหม่กว่า
-* **ฮาร์ดแวร์ & วงจร:**
-  * บอร์ดไมโครคอนโทรลเลอร์ ESP32 พร้อมสาย USB
-  * ตัวต้านทานปรับค่าได้ (Potentiometer / Rotary Volume) $10k\Omega$ จำนวน 1 ตัว
-  * เซนเซอร์วัดแสง LDR (Light Dependent Resistor) จำนวน 1 ตัว
-  * ตัวต้านทาน $10k\Omega$ (สำหรับทำ Voltage Divider ร่วมกับ LDR) จำนวน 1 ตัว
-  * สายต่อ Breadboard (Jumper Wires)
+### ฮาร์ดแวร์ (Hardware)
+* บอร์ดไมโครคอนโทรลเลอร์ **ESP32** (ESP32-WROOM-32, NodeMCU-32S, หรือ ESP32-C6) จำนวน 1 บอร์ด
+* สายเชื่อมต่อ **Micro-USB** หรือ **Type-C** (ต้องเป็นสายที่มีสาย Data ไม่ใช่สายชาร์จอย่างเดียว)
+* **ตัวต้านทานปรับค่าได้ (Potentiometer)** ขนาด $10\text{ k}\Omega$ หรือ **เซนเซอร์วัดความเข้มแสง (LDR)** พร้อมตัวต้านทาน $10\text{ k}\Omega$
+* Breadboard และสายไฟจัมเปอร์ (Jumper Wires) 3-5 เส้น
 
-### ตารางผังการต่ออุปกรณ์ (Hardware Pinout Table)
+### ซอฟต์แวร์ (Software & SDK)
+* **.NET SDK 8.0** หรือ **9.0** ขึ้นไป ([ดาวน์โหลดฟรีจาก Microsoft](https://dotnet.microsoft.com/download))
+* **Visual Studio Code (VS Code)** พร้อมส่วนขยาย:
+  * *C# Dev Kit* หรือ *C# (Microsoft)*
+* **ESP-IDF v6.x** (ผ่าน Docker หรือ Native ESP-IDF Toolchain / VS Code Extension)
+* Web Browser สมัยใหม่ (Google Chrome, Microsoft Edge, หรือ Firefox)
 
-| อุปกรณ์ที่ต่อ | ขา ESP32 (GPIO) | ฟังก์ชัน / โหมดการทำงาน | ช่วงค่าสัญญาณ (Range) |
-| :--- | :--- | :--- | :--- |
-| **Potentiometer (ขากลาง)** | **GPIO 34** (ADC1_CH6) | แอนะล็อกอินพุต (ปรับเปลี่ยนแรงดันไฟฟ้า) | 0 - 4095 (0.00V - 3.30V) |
-| **LDR Sensor (จุดแบ่งแรงดัน)** | **GPIO 35** (ADC1_CH7) | แอนะล็อกอินพุต (วัดความเข้มแสงสว่าง) | 0 - 4095 (0% - 100% Light) |
+---
+
+## 6. แผนผังสถาปัตยกรรมระบบรวม (End-to-End IoT Gateway Pipeline)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as ผู้ใช้งาน / นิ้วหมุน
+    participant Pot as Potentiometer / LDR
+    participant ESP as ESP32 Firmware (ADC)
+    participant USB as USB Virtual COM Port
+    participant Worker as Kestrel BackgroundService
+    participant State as Shared State Store
+    participant API as Minimal API (/api/telemetry)
+    participant Browser as Web Browser (SVG Dashboard)
+
+    User->>Pot: 1. หมุนตัวต้านทานปรับค่าได้ (Physical Input)
+    Pot->>ESP: 2. เปลี่ยนแปลงแรงดันแอนะล็อก (0 - 3.3V)
+    ESP->>ESP: 3. ADC Sampling (0 - 4095)
+    ESP->>USB: 4. สตรีมผ่าน Serial.println() @ 115200 bps
+    USB->>Worker: 5. System.IO.Ports อ่าน Line Buffer
+    Worker->>State: 6. บันทึกค่าล่าสุดลง Memory (Thread-Safe)
+    loop ทุกๆ 200 - 500 ms (Polling)
+        Browser->>API: 7. HTTP GET /api/telemetry
+        API->>State: 8. ดึงค่า Sensor ล่าสุด
+        State-->>API: 9. Telemetry Data
+        API-->>Browser: 10. HTTP 200 OK (JSON Payload)
+        Browser->>Browser: 11. CSS Transform หมุนเข็มไมล์ SVG ตามมุมที่แปลงได้
+    end
+```
+
+---
+
+## 7. เกณฑ์การประเมินและการส่งงาน (Grading Rubric)
+
+| รายการประเมิน | สัดส่วนคะแนน | เกณฑ์การให้คะแนน |
+| :--- | :---: | :--- |
+| **1. การทำงานของ Web Server & Minimal API** | 25% | สามารถรันเซิร์ฟเวอร์ คืนค่า JSON ถูกต้อง และผ่านการทดสอบ Micro-Challenge ประจำตัว |
+| **2. การสตรีมข้อมูลจาก ESP32 (Hardware ADC)** | 25% | วงจรต่อถูกต้อง สตรีมค่า ADC ออกทาง Serial Port นิ่งและสม่ำเสมอ |
+| **3. การเชื่อมต่อ Serial Bridge บน Kestrel** | 25% | Kestrel อ่านค่าจาก COM Port ได้ มีระบบ Fallback Simulator รองรับ และเสิร์ฟผ่าน API ได้ถูกต้อง |
+| **4. ความสวยงามและความคิดสร้างสรรค์ของ SVG Dashboard** | 25% | หน้าปัด SVG ขยับอย่างนุ่มนวล มีการปรับแต่งสไตล์ หรือเลือกเพิ่มวิดเจ็ตทางเลือก (Speedometer / VU Meter / 7-Segment) |
+| **รวม** | **100%** | |

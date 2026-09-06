@@ -1,0 +1,29 @@
+# .NET Build Artifacts
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+
+# Log files
+*.log
+
+# ESP-IDF Build Artifacts
+build/
+sdkconfig.old

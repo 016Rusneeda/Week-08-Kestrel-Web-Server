@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 IoT Gateway &bull; Interactive SVG Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0a0f1d;
+            --bg-card: rgba(16, 24, 47, 0.75);
+            --border-card: rgba(0, 242, 254, 0.2);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-pink: #ff0844;
+            --text-main: #f0f4f8;
+            --text-dim: #8ba2b9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 20%, #152238 0%, var(--bg-primary) 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 15px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-card);
+            border-radius: 28px;
+            padding: 32px 24px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 242, 254, 0.08);
+            text-align: center;
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .header-desc {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+            margin-bottom: 24px;
+        }
+
+        /* เมนูสลับหน้าปัด (Widget View Switcher) */
+        .tab-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 5px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            color: #050b14;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+        }
+
+        /* พื้นที่แสดงวิดเจ็ต */
+        .widget-viewport {
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .widget-view {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .widget-view.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 1. Speedometer Styling */
+        .speedo-svg {
+            width: 100%;
+            max-width: 340px;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.25));
+        }
+
+        #speedo-needle {
+            transform-origin: 150px 150px;
+            transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 2. VU Meter Styling */
+        .vumeter-svg {
+            width: 100%;
+            max-width: 320px;
+            height: 180px;
+        }
+
+        /* 3. 7-Segment Styling */
+        .seven-seg-box {
+            display: flex;
+            gap: 12px;
+            background: #050b14;
+            padding: 20px 30px;
+            border-radius: 18px;
+            border: 2px solid rgba(0, 242, 254, 0.2);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .digit-svg {
+            width: 55px;
+            height: 90px;
+        }
+
+        .segment {
+            fill: #00f2fe;
+            opacity: 0.06;
+            transition: opacity 0.08s ease;
+        }
+
+        .segment.on {
+            opacity: 1;
+            filter: drop-shadow(0 0 6px #00f2fe);
+        }
+
+        /* การ์ดสถิติ (Statistics Grid) */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 14px 10px;
+        }
+
+        .stat-title {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #00f2fe;
+        }
+
+        /* ป้ายสถานะ (Pill Badge) */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.78rem;
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            color: #00f2fe;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00f2fe;
+            box-shadow: 0 0 8px #00f2fe;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <h1 class="header-title">⚡ IoT Edge Telemetry Hub</h1>
+    <p class="header-desc">ESP32 Hardware Stream &bull; Kestrel In-Process Web Server</p>
+
+    <!-- สลับมุมมองหน้าปัด -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchView('speedo')">🏎️ Speedometer</button>
+        <button class="tab-btn" onclick="switchView('vumeter')">🎛️ VU Meter</button>
+        <button class="tab-btn" onclick="switchView('7seg')">📟 7-Segment</button>
+    </div>
+
+    <!-- พื้นที่แสดง Widget -->
+    <div class="widget-viewport">
+        <!-- 1. SPEEDOMETER GAUGE -->
+        <div id="view-speedo" class="widget-view active">
+            <svg class="speedo-svg" viewBox="0 0 300 200">
+                <!-- ขอบรางด้านหลัง -->
+                <path d="M 40 150 A 110 110 0 0 1 260 150" fill="none" stroke="#182742" stroke-width="20" stroke-linecap="round"/>
+                
+                <!-- เส้นแสดงโซนสี (เขียว - เหลือง - แดง) -->
+                <path d="M 40 150 A 110 110 0 0 1 150 40" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round"/>
+                <path d="M 150 40 A 110 110 0 0 1 215 65" fill="none" stroke="#f59e0b" stroke-width="7"/>
+                <path d="M 215 65 A 110 110 0 0 1 260 150" fill="none" stroke="#ef4444" stroke-width="7" stroke-linecap="round"/>
+
+                <!-- สเกลตัวเลข -->
+                <text x="35" y="178" fill="#8ba2b9" font-size="11" text-anchor="middle">0%</text>
+                <text x="150" y="24" fill="#8ba2b9" font-size="11" text-anchor="middle">50%</text>
+                <text x="265" y="178" fill="#8ba2b9" font-size="11" text-anchor="middle">100%</text>
+
+                <!-- ตัวเลขแสดงเปอร์เซ็นต์ใหญ่ -->
+                <text id="speedo-label" x="150" y="132" fill="#ffffff" font-size="34" font-weight="bold" text-anchor="middle">0.0%</text>
+
+                <!-- เข็มไมล์สีแดงเรืองแสง -->
+                <g id="speedo-needle" style="transform: rotate(-90deg);">
+                    <polygon points="146,150 154,150 151,46 149,46" fill="#ff0844" filter="drop-shadow(0 0 6px #ff0844)"/>
+                    <circle cx="150" cy="150" r="11" fill="#ffffff"/>
+                    <circle cx="150" cy="150" r="5" fill="#ff0844"/>
+                </g>
+            </svg>
+        </div>
+
+        <!-- 2. VU METER (LED BAR GRAPH) -->
+        <div id="view-vumeter" class="widget-view">
+            <svg class="vumeter-svg" viewBox="0 0 280 160">
+                <!-- แถบไฟ 12 ระดับเรียงจากซ้ายไปขวา -->
+                <g id="vu-bars"></g>
+                <text id="vu-label" x="140" y="145" fill="#00f2fe" font-size="22" font-weight="bold" text-anchor="middle">LEVEL 0%</text>
+            </svg>
+        </div>
+
+        <!-- 3. RETRO 7-SEGMENT DISPLAY -->
+        <div id="view-7seg" class="widget-view">
+            <div class="seven-seg-box">
+                <svg class="digit-svg" id="seg-digit-1" viewBox="0 0 60 100"></svg>
+                <svg class="digit-svg" id="seg-digit-2" viewBox="0 0 60 100"></svg>
+                <svg class="digit-svg" id="seg-digit-3" viewBox="0 0 60 100"></svg>
+            </div>
+            <div style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px;">RAW ADC 12-BIT VALUE</div>
+        </div>
+    </div>
+
+    <!-- สถิติตัวเลข -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-title">ADC Raw (12-Bit)</div>
+            <div class="stat-value" id="val-raw">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Analog Voltage</div>
+            <div class="stat-value" id="val-volt">0.00 V</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Alert Status</div>
+            <div class="stat-value" id="val-alert" style="font-size: 1.05rem; color: #10b981;">NORMAL</div>
+        </div>
+    </div>
+
+    <!-- แถบแสดงแหล่งข้อมูล -->
+    <div class="status-pill">
+        <div class="pulse-dot"></div>
+        <span id="val-source">Connecting to Gateway...</span>
+    </div>
+</div>
+
+<script>
+    // ========================================================================
+    // 1. WIDGET SETUP & DOM GENERATION
+    // ========================================================================
+    // สร้างแท่งไฟ VU Meter 12 แท่ง
+    const vuContainer = document.getElementById('vu-bars');
+    const TOTAL_BARS = 12;
+    for (let i = 0; i < TOTAL_BARS; i++) {
+        const x = 20 + i * 20;
+        const color = i < 7 ? '#10b981' : (i < 10 ? '#f59e0b' : '#ef4444');
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', 20);
+        rect.setAttribute('width', 14);
+        rect.setAttribute('height', 85);
+        rect.setAttribute('rx', 4);
+        rect.setAttribute('fill', color);
+        rect.setAttribute('opacity', '0.12');
+        rect.setAttribute('id', `vu-bar-${i}`);
+        vuContainer.appendChild(rect);
+    }
+
+    // สร้างเส้น 7-Segment SVG
+    // พิกัด 7 ชิ้น (a, b, c, d, e, f, g)
+    const segMap = {
+        0: [1,1,1,1,1,1,0],
+        1: [0,1,1,0,0,0,0],
+        2: [1,1,0,1,1,0,1],
+        3: [1,1,1,1,0,0,1],
+        4: [0,1,1,0,0,1,1],
+        5: [1,0,1,1,0,1,1],
+        6: [1,0,1,1,1,1,1],
+        7: [1,1,1,0,0,0,0],
+        8: [1,1,1,1,1,1,1],
+        9: [1,1,1,1,0,1,1]
+    };
+
+    function init7Seg(svgId) {
+        const svg = document.getElementById(svgId);
+        const paths = [
+            { id: 'a', d: 'M 12 8 L 48 8 L 42 16 L 18 16 Z' },
+            { id: 'b', d: 'M 50 10 L 50 46 L 42 42 L 42 16 Z' },
+            { id: 'c', d: 'M 50 54 L 50 90 L 42 84 L 42 58 Z' },
+            { id: 'd', d: 'M 12 92 L 48 92 L 42 84 L 18 84 Z' },
+            { id: 'e', d: 'M 10 54 L 18 58 L 18 84 L 10 90 Z' },
+            { id: 'f', d: 'M 10 10 L 18 16 L 18 42 L 10 46 Z' },
+            { id: 'g', d: 'M 12 50 L 18 44 L 42 44 L 48 50 L 42 56 L 18 56 Z' }
+        ];
+        paths.forEach(p => {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', p.d);
+            path.setAttribute('class', `segment seg-${p.id}`);
+            svg.appendChild(path);
+        });
+    }
+    init7Seg('seg-digit-1');
+    init7Seg('seg-digit-2');
+    init7Seg('seg-digit-3');
+
+    function update7Seg(svgId, digit) {
+        const segments = segMap[digit] || [0,0,0,0,0,0,0];
+        const segLetters = ['a','b','c','d','e','f','g'];
+        const svg = document.getElementById(svgId);
+        segLetters.forEach((letter, idx) => {
+            const el = svg.querySelector(`.seg-${letter}`);
+            if (el) {
+                if (segments[idx] === 1) el.classList.add('on');
+                else el.classList.remove('on');
+            }
+        });
+    }
+
+    // ========================================================================
+    // 2. VIEW SWITCHING
+    // ========================================================================
+    function switchView(viewName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.widget-view').forEach(view => view.classList.remove('active'));
+
+        if (viewName === 'speedo') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('view-speedo').classList.add('active');
+        } else if (viewName === 'vumeter') {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('view-vumeter').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.getElementById('view-7seg').classList.add('active');
+        }
+    }
+
+    // ========================================================================
+    // 3. TELEMETRY POLLING & ANIMATION
+    // ========================================================================
+    async function fetchTelemetry() {
+        try {
+            const res = await fetch('/api/telemetry');
+            if (!res.ok) return;
+            const data = await res.json();
+
+            // อัปเดตการ์ดสถิติ
+            document.getElementById('val-raw').textContent = data.rawValue;
+            document.getElementById('val-volt').textContent = data.voltage.toFixed(2) + ' V';
+            document.getElementById('val-source').textContent = data.dataSource;
+
+            const alertEl = document.getElementById('val-alert');
+            alertEl.textContent = data.alertLevel;
+            if (data.alertLevel === 'CRITICAL_HIGH') alertEl.style.color = '#ef4444';
+            else if (data.alertLevel === 'WARNING') alertEl.style.color = '#f59e0b';
+            else alertEl.style.color = '#10b981';
+
+            // 1. อัปเดต Speedometer (หมุนเข็ม -90deg ถึง +90deg)
+            const angle = (data.percentage / 100.0) * 180.0 - 90.0;
+            document.getElementById('speedo-needle').style.transform = `rotate(${angle}deg)`;
+            document.getElementById('speedo-label').textContent = data.percentage.toFixed(1) + '%';
+
+            // 2. อัปเดต VU Meter (เปิดไฟตามสัดส่วน 12 แท่ง)
+            const activeBars = Math.round((data.percentage / 100.0) * TOTAL_BARS);
+            for (let i = 0; i < TOTAL_BARS; i++) {
+                const bar = document.getElementById(`vu-bar-${i}`);
+                if (i < activeBars) {
+                    bar.setAttribute('opacity', '1.0');
+                    bar.style.filter = 'drop-shadow(0 0 5px currentColor)';
+                } else {
+                    bar.setAttribute('opacity', '0.12');
+                    bar.style.filter = 'none';
+                }
+            }
+            document.getElementById('vu-label').textContent = `LEVEL ${data.percentage.toFixed(0)}%`;
+
+            // 3. อัปเดต 7-Segment (แสดงค่า raw 3 หลัก เช่น 0-999)
+            const raw3Digit = Math.min(Math.floor(data.rawValue / 4.096), 999);
+            const str = String(raw3Digit).padStart(3, '0');
+            update7Seg('seg-digit-1', parseInt(str[0]));
+            update7Seg('seg-digit-2', parseInt(str[1]));
+            update7Seg('seg-digit-3', parseInt(str[2]));
+
+        } catch (err) {
+            console.error('Polling error:', err);
+        }
+    }
+
+    // วนลูป Polling ทุกๆ 120 มิลลิวินาที (ประมาณ 8 ครั้งต่อวินาที)
+    setInterval(fetchTelemetry, 120);
+</script>
+
+</body>
+</html>
