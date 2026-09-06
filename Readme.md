@@ -106,3 +106,25 @@ sequenceDiagram
 | **3. การเชื่อมต่อ Serial Bridge บน Kestrel** | 25% | Kestrel อ่านค่าจาก COM Port ได้ มีระบบ Fallback Simulator รองรับ และเสิร์ฟผ่าน API ได้ถูกต้อง |
 | **4. ความสวยงามและความคิดสร้างสรรค์ของ SVG Dashboard** | 25% | หน้าปัด SVG ขยับอย่างนุ่มนวล มีการปรับแต่งสไตล์ หรือเลือกเพิ่มวิดเจ็ตทางเลือก (Speedometer / VU Meter / 7-Segment) |
 | **รวม** | **100%** | |
+
+---
+
+## 8. โครงสร้างโปรเจกต์ส่งงานรายบุคคล (Student Submission Structure & Anti-Cheating)
+
+เพื่อตรวจสอบพัฒนาการการเรียนรู้ทีละสเต็ป (Learning Progression) และป้องกันการคัดลอกงานแบบรวบรัด (Anti-Cheating) **นักศึกษาจะต้องแยกโฟลเดอร์โปรเจกต์ในแต่ละใบงานอย่างเด็ดขาด และทำการ Commit แยกตามแต่ละแล็บ**:
+
+```text
+Student-Repository/
+├── Lab8-1/
+│   └── Kestrel_API/               # โปรเจกต์ .NET Minimal API (ใบงาน 8.1)
+├── Lab8-2/
+│   └── ESP32_ADC_Stream/          # โปรเจกต์ ESP-IDF อ่าน ADC สตรีม Serial (ใบงาน 8.2)
+├── Lab8-3/
+│   ├── ESP32_ADC_Stream/          # โปรเจกต์ ESP-IDF (ใบงาน 8.3)
+│   └── Kestrel_Serial_Gateway/    # โปรเจกต์ .NET Serial Bridge + Fallback Simulator (ใบงาน 8.3)
+└── Lab8-4/
+    ├── ESP32_ADC_Stream/          # โปรเจกต์ ESP-IDF (ใบงาน 8.4)
+    └── Kestrel_SVG_Dashboard/     # โปรเจกต์ .NET Web Gateway + wwwroot/index.html SVG (ใบงาน 8.4)
+```
+
+> 📌 โค้ดตัวอย่างอ้างอิงฉบับสมบูรณ์ของแต่ละใบงานได้จัดเตรียมไว้ในโฟลเดอร์ `Example_codes/Lab8-1/` ถึง `Example_codes/Lab8-4/` ให้เรียบร้อยแล้ว

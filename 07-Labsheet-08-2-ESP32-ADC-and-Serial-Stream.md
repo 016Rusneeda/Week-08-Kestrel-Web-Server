@@ -46,11 +46,17 @@
 
 ใน ESP-IDF v6.x การอ่านค่าสัญญาณแอนะล็อกจะใช้ไดรเวอร์ **`esp_adc/adc_oneshot.h`** ซึ่งมีประสิทธิภาพสูงและปลอดภัยต่อหน่วยความจำ
 
-1. เปิด Terminal หรือคอนเทนเนอร์ ESP-IDF v6.x แล้วสร้างโปรเจกต์ใหม่:
+> ⚠️ **ข้อกำหนดสำคัญด้านการส่งงาน (Project Isolation):**  
+> ให้สร้างโปรเจกต์นี้แยกไว้ในโฟลเดอร์ **`Lab8-2/ESP32_ADC_Stream`** ห้ามเขียนทับกับใบงานอื่น
+
+1. เปิด Terminal หรือคอนเทนเนอร์ ESP-IDF v6.x แล้วสร้างโปรเจกต์ใหม่ในโฟลเดอร์ `Lab8-2`:
    ```bash
-   # สร้างโปรเจกต์ชื่อ esp32_pot_stream
-   idf.py create-project esp32_pot_stream
-   cd esp32_pot_stream
+   # สร้างโฟลเดอร์ Lab8-2 และเข้าไปด้านใน
+   mkdir -p Lab8-2 && cd Lab8-2
+
+   # สร้างโปรเจกต์ชื่อ ESP32_ADC_Stream
+   idf.py create-project ESP32_ADC_Stream
+   cd ESP32_ADC_Stream
    ```
 
 2. เปิดไฟล์ `main/main.c` แล้วเขียนโค้ดอ่านค่า ADC ดังนี้:

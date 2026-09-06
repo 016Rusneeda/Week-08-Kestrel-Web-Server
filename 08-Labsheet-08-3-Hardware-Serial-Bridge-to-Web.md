@@ -14,22 +14,36 @@
 ---
 
 ## 🛠️ เครื่องมือและสิ่งที่ต้องเตรียม (Prerequisites)
-- บอร์ด ESP32 ที่ผ่านการเบิร์นโค้ดจากใบงานที่ 8.2 และเสียบสาย USB คาไว้กับเครื่องคอมพิวเตอร์
-- โปรเจกต์ `IoT_Gateway` จากใบงานที่ 8.1
-- **สำคัญมาก:** ต้องปิดหน้าต่าง Serial Monitor / Serial Plotter ใน Arduino IDE ให้เรียบร้อย เพื่อปลดล็อกพอร์ต COM
+- บอร์ด ESP32 ที่ต่อวงจร Potentiometer พร้อมสาย USB
+- **สำคัญมาก:** ต้องปิดหน้าต่าง Serial Monitor / Serial Plotter ในโปรแกรมอื่นให้เรียบร้อย เพื่อปลดล็อกพอร์ต COM
+
+> ⚠️ **ข้อกำหนดสำคัญด้านการส่งงาน (Project Isolation & Anti-Cheating):**  
+> ในใบงานที่ 8.3 นักศึกษาต้องสร้างโฟลเดอร์ทำงานใหม่แยกเฉพาะเป็น **`Lab8-3`** โดยมีการฝึกปฏิบัติซ้ำทั้งสองฝั่ง:
+> 1. **ฝั่ง ESP32:** ทำงานในโฟลเดอร์ `Lab8-3/ESP32_ADC_Stream` (คัดลอกหรือสร้างใหม่จาก Lab8-2)
+> 2. **ฝั่ง Kestrel Gateway:** สร้างโปรเจกต์ใหม่ใน `Lab8-3/Kestrel_Serial_Gateway`
 
 ---
 
 ## 🧪 ขั้นตอนการทดลอง (Step-by-Step Activities)
 
-### 🌟 กิจกรรมที่ 1: ติดตั้งแพ็กเกจ System.IO.Ports
+### 🌟 กิจกรรมที่ 1: สร้างโปรเจกต์ Kestrel_Serial_Gateway และติดตั้ง System.IO.Ports
 
-1. เปิด Terminal ในโฟลเดอร์โปรเจกต์ `IoT_Gateway`
+ฝึกฝนการสร้างโปรเจกต์ Web และติดตั้งแพ็กเกจด้วยตนเองอีกครั้ง:
+
+1. เปิด Terminal สร้างโฟลเดอร์และโปรเจกต์ใหม่:
+   ```bash
+   # สร้างโฟลเดอร์โปรเจกต์สำหรับ Lab 8.3
+   mkdir -p Lab8-3/Kestrel_Serial_Gateway && cd Lab8-3/Kestrel_Serial_Gateway
+
+   # สร้างโปรเจกต์ Web เปล่า
+   dotnet new web -o .
+   ```
+
 2. พิมพ์คำสั่งติดตั้งไลบรารีสื่อสาร Serial Port ของ .NET:
    ```bash
    dotnet add package System.IO.Ports
    ```
-3. ตรวจสอบไฟล์ `IoT_Gateway.csproj` จะเห็นว่ามีบรรทัด `<PackageReference Include="System.IO.Ports" ... />` เพิ่มเข้ามา
+3. ตรวจสอบไฟล์ `Kestrel_Serial_Gateway.csproj` จะเห็นว่ามีบรรทัด `<PackageReference Include="System.IO.Ports" ... />` เพิ่มเข้ามา
 
 ---
 

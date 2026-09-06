@@ -14,29 +14,37 @@
 ---
 
 ## 🛠️ เครื่องมือและสิ่งที่ต้องเตรียม (Prerequisites)
-- โปรเจกต์ `IoT_Gateway` ที่ทำเสร็จสมบูรณ์จากใบงานที่ 8.3
 - บอร์ด ESP32 พร้อมสาย USB ที่ต่อวงจร Potentiometer เรียบร้อยแล้ว
 - เว็บเบราว์เซอร์ที่รองรับ HTML5 / SVG (Google Chrome, Edge, Safari, Firefox)
+
+> ⚠️ **ข้อกำหนดสำคัญด้านการส่งงาน (Project Isolation & Anti-Cheating):**  
+> ในใบงานสุดท้ายที่ 8.4 นี้ ให้นักศึกษาจัดเตรียมโฟลเดอร์แยกต่างหากเป็น **`Lab8-4`** อย่างชัดเจน:
+> 1. **ฝั่ง ESP32:** โฟลเดอร์ `Lab8-4/ESP32_ADC_Stream` (คัดลอกหรือสร้างใหม่จากแล็บก่อนหน้า)
+> 2. **ฝั่ง Kestrel Dashboard:** โฟลเดอร์ `Lab8-4/Kestrel_SVG_Dashboard`
 
 ---
 
 ## 🧪 ขั้นตอนการทดลอง (Step-by-Step Activities)
 
-### 🌟 กิจกรรมที่ 1: เปิดใช้งาน Static File Server บน Kestrel
+### 🌟 กิจกรรมที่ 1: เตรียมโปรเจกต์ Kestrel_SVG_Dashboard และเปิดใช้งาน Static File Server
 
-เพื่อให้ Kestrel สามารถเสิร์ฟไฟล์ HTML, CSS, และ JavaScript จากโฟลเดอร์ `wwwroot`:
+1. เตรียมโฟลเดอร์สำหรับ Lab 8.4 โดยสร้างโปรเจกต์ใหม่ (หรือคัดลอกโครงสร้างจาก `Lab8-3/Kestrel_Serial_Gateway` มาต่อยอด):
+   ```bash
+   # หากสร้างใหม่
+   mkdir -p Lab8-4/Kestrel_SVG_Dashboard && cd Lab8-4/Kestrel_SVG_Dashboard
+   dotnet new web -o .
+   dotnet add package System.IO.Ports
 
-1. เปิดไฟล์ `Program.cs` แล้วเพิ่มคำสั่ง `app.UseFileServer();` ก่อนบรรทัด `app.Run();`:
+   # สร้างโฟลเดอร์ wwwroot สำหรับเก็บไฟล์เว็บ HTML/CSS/SVG
+   mkdir wwwroot
+   ```
+
+2. ในไฟล์ `Program.cs` ให้ตรวจเช็คว่ามีโค้ด State Store และ Background Worker จากใบงานที่ 8.3 ครบถ้วน จากนั้นเพิ่มคำสั่ง `app.UseFileServer();` ก่อนบรรทัด `app.Run();`:
    ```csharp
-   // เปิดใช้งานการเสิร์ฟไฟล์สถิตและ index.html อัตโนมัติ
+   // เปิดใช้งานการเสิร์ฟไฟล์สถิต (HTML, CSS, JS) ใน wwwroot และเปิด index.html อัตโนมัติ
    app.UseFileServer();
 
    app.Run();
-   ```
-
-2. ในโฟลเดอร์โปรเจกต์ `IoT_Gateway` ให้สร้างโฟลเดอร์ใหม่ชื่อ: `wwwroot`
-   ```bash
-   mkdir wwwroot
    ```
 
 ---
