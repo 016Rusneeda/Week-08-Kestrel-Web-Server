@@ -254,10 +254,224 @@
 ```
 *แนวทาง JavaScript ควบคุม:* คำนวณจำนวนหลอดที่ต้องเปิด = `Math.floor(data.percentage / 10)` แล้วสั่งเปลี่ยน `opacity` เป็น `1.0` พร้อมใส่ Glow Effect!
 
+
+#### ตัวอย่าง code ในไฟล์ index.html
+
+```Javascript 
+
+ // 1. เพิ่มฟังก์ชันสำหรับอัปเดตแถบไฟ VU Meter
+        function updateVuMeter(percentage) {
+            const leds = document.querySelectorAll('#vumeter .led');
+            const totalLeds = leds.length; // มี 10 หลอด
+
+            // คำนวณจำนวนหลอดที่ต้องเปิด (0 ถึง 10 หลอด)
+            // เช่น 45% -> 4.5 -> ปัดเป็น 5 หลอด หรือใช้ Math.floor จะได้ 4 หลอด
+            const activeCount = Math.round((percentage / 100.0) * totalLeds);
+
+            leds.forEach((led, index) => {
+                if (index < activeCount) {
+                    // หลอดที่เปิด: ปรับความสว่างเต็มที่ พร้อมใส่แสงนีออนเรืองแสงตามสีเดิมของหลอด
+                    led.style.opacity = '1.0';
+                    const color = led.getAttribute('fill');
+                    led.style.filter = `drop-shadow(0 0 6px ${color})`;
+                } else {
+                    // หลอดที่ปิด: ปรับให้หรี่มืดลง
+                    led.style.opacity = '0.15';
+                    led.style.filter = 'none';
+                }
+            });
+        }
+
+        // 2. ปรับปรุงฟังก์ชัน pollTelemetry ให้เรียกใช้ฟังก์ชัน updateVuMeter
+        async function pollTelemetry() {
+            try {
+                const res = await fetch('/api/telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // 1. อัปเดตตัวเลขแสดงผลด้านล่าง
+                const dispPercent = document.getElementById('disp-percent');
+                if (dispPercent) {
+                    dispPercent.textContent = data.percentage.toFixed(1) + '%';
+                }
+                document.getElementById('disp-raw').textContent = data.rawValue;
+                document.getElementById('disp-volt').textContent = data.voltage.toFixed(2) + ' V';
+                document.getElementById('disp-source').textContent = '📡 ' + data.dataSource;
+
+                // 2. เรียกฟังก์ชันอัปเดต VU Meter ตามเปอร์เซ็นต์เซนเซอร์
+                updateVuMeter(data.percentage);
+
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }
+
+        // วนลูปดึงข้อมูลทุกๆ 150 มิลลิวินาที
+        setInterval(pollTelemetry, 150);
+```
+
+
 ---
 
 ### 📟 ตัวเลือก B: หน้าจอดิจิทัลเรโทร 7 ส่วน (Retro 7-Segment SVG)
 สร้างหน้าปัดตัวเลขดิจิทัลแบบ 7 ส่วนเรืองแสงสไตล์นีออนเรโทร โดยควบคุมชิ้นส่วนของเส้น segment (a, b, c, d, e, f, g) ให้เปิด-ปิดตามตัวเลขเปอร์เซ็นต์ที่อ่านได้
+
+#### 1. หลักการทำงานของ 7-Segment Display
+ตัวเลขดิจิทัล 1 หลัก ประกอบด้วยเส้นหลอดไฟ 7 เส้น เรียงตามชื่อมาตรฐานสากล:
+```text
+      -- a --
+     |       |
+     f       b
+     |       |
+      -- g --
+     |       |
+     e       c
+     |       |
+      -- d --
+```
+เราจะใช้ **Truth Table (Segment Lookup Table)** จับคู่ตัวเลข `0 - 9` กับสถานะติด/ดับของแต่ละเส้น `[a, b, c, d, e, f, g]` เช่น เลข `8` จะติดทุกเส้น `[1,1,1,1,1,1,1]` ส่วนเลข `1` จะติดเฉพาะเส้นขวา `[0,1,1,0,0,0,0]`
+
+---
+
+#### 2. โค้ด SVG และ CSS สำหรับแทรกใน `index.html`
+
+วางโค้ด `<svg>` และ `<style>` นี้ลงในส่วนแสดงผลของหน้าเว็บ `wwwroot/index.html`:
+
+```html
+<style>
+    /* สไตล์หลอด 7-Segment สไตล์เรโทรนีออน */
+    .seg {
+        fill: #1e293b;            /* สีตอนปิด (ดับสนิท / เงาดำ) */
+        opacity: 0.15;
+        transition: opacity 0.08s ease, fill 0.08s ease;
+    }
+
+    /* เมื่อ segment ถูกสั่งเปิด (Active) จะเรืองแสงนีออน */
+    .seg.active {
+        fill: #00ffcc;            /* สีนีออนเขียวอมฟ้า (หรือเปลี่ยนเป็น #ff0055 สีนีออนแดง) */
+        opacity: 1;
+        filter: drop-shadow(0 0 6px #00ffcc);
+    }
+</style>
+
+<!-- หน้าปัด 7-Segment แสดงผล 2 หลัก (00 - 99%) -->
+<svg width="230" height="130" viewBox="0 0 230 130" id="seven-seg-board">
+    <!-- กรอบหน้าปัดสีเข้มสไตล์ Cyberpunk/Retro -->
+    <rect x="5" y="5" width="220" height="120" rx="12" fill="#0b0f19" stroke="#1e293b" stroke-width="2"/>
+
+    <!-- หลักสิบ (Tens Digit) -->
+    <g id="seg-digit1" transform="translate(25, 15)">
+        <polygon class="seg a" points="14,12 19,7 41,7 46,12 41,17 19,17"/>
+        <polygon class="seg b" points="48,14 53,19 53,41 48,46 43,41 43,19"/>
+        <polygon class="seg c" points="48,54 53,59 53,81 48,86 43,81 43,59"/>
+        <polygon class="seg d" points="14,88 19,83 41,83 46,88 41,93 19,93"/>
+        <polygon class="seg e" points="12,54 17,59 17,81 12,86 7,81 7,59"/>
+        <polygon class="seg f" points="12,14 17,19 17,41 12,46 7,41 7,19"/>
+        <polygon class="seg g" points="14,50 19,45 41,45 46,50 41,55 19,55"/>
+    </g>
+
+    <!-- หลักหน่วย (Ones Digit) -->
+    <g id="seg-digit2" transform="translate(100, 15)">
+        <polygon class="seg a" points="14,12 19,7 41,7 46,12 41,17 19,17"/>
+        <polygon class="seg b" points="48,14 53,19 53,41 48,46 43,41 43,19"/>
+        <polygon class="seg c" points="48,54 53,59 53,81 48,86 43,81 43,59"/>
+        <polygon class="seg d" points="14,88 19,83 41,83 46,88 41,93 19,93"/>
+        <polygon class="seg e" points="12,54 17,59 17,81 12,86 7,81 7,59"/>
+        <polygon class="seg f" points="12,14 17,19 17,41 12,46 7,41 7,19"/>
+        <polygon class="seg g" points="14,50 19,45 41,45 46,50 41,55 19,55"/>
+    </g>
+
+    <!-- สัญลักษณ์เปอร์เซ็นต์ % -->
+    <text x="175" y="90" fill="#00ffcc" font-family="'Courier New', monospace" font-size="28" font-weight="bold" opacity="0.85">%</text>
+</svg>
+```
+
+---
+
+#### 3. โค้ด JavaScript ควบคุมการเปิด-ปิด Segment
+
+เพิ่มตารางค่า Segment และฟังก์ชัน `update7Segment()` ลงในแท็ก `<script>`:
+
+```javascript
+// ตารางสถานะของหลอด 7-Segment (a, b, c, d, e, f, g) สำหรับเลข 0 ถึง 9
+const SEGMENT_MAP = {
+    0: [1, 1, 1, 1, 1, 1, 0],
+    1: [0, 1, 1, 0, 0, 0, 0],
+    2: [1, 1, 0, 1, 1, 0, 1],
+    3: [1, 1, 1, 1, 0, 0, 1],
+    4: [0, 1, 1, 0, 0, 1, 1],
+    5: [1, 0, 1, 1, 0, 1, 1],
+    6: [1, 0, 1, 1, 1, 1, 1],
+    7: [1, 1, 1, 0, 0, 0, 0],
+    8: [1, 1, 1, 1, 1, 1, 1],
+    9: [1, 1, 1, 1, 0, 1, 1]
+};
+
+const SEG_NAMES = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+
+// ฟังก์ชันสั่งเปิด-ปิด segment ของตัวเลข 1 หลัก
+function setDigit(digitGroupId, num) {
+    const group = document.getElementById(digitGroupId);
+    if (!group) return;
+
+    const pattern = SEGMENT_MAP[num] || [0, 0, 0, 0, 0, 0, 0];
+
+    SEG_NAMES.forEach((segName, index) => {
+        const segElement = group.querySelector(`.${segName}`);
+        if (segElement) {
+            if (pattern[index] === 1) {
+                segElement.classList.add('active');
+            } else {
+                segElement.classList.remove('active');
+            }
+        }
+    });
+}
+
+// ฟังก์ชันแยกหลักสิบและหลักหน่วย แล้วสั่งอัปเดตหน้าจอ
+function update7Segment(percentage) {
+    // จำกัดค่า 0 - 99 เพื่อแสดงผล 2 หลัก
+    const val = Math.min(99, Math.max(0, Math.round(percentage)));
+    const tens = Math.floor(val / 10);
+    const ones = val % 10;
+
+    setDigit('seg-digit1', tens);
+    setDigit('seg-digit2', ones);
+}
+```
+
+---
+
+#### 4. นำไปเชื่อมต่อกับลูป Polling (`pollTelemetry`)
+
+ในฟังก์ชัน `pollTelemetry()` ให้เรียก `update7Segment(data.percentage)` เพื่อให้หน้าจอเปลี่ยนตามการหมุนตัวต้านทานแบบ Real-time:
+
+```javascript
+async function pollTelemetry() {
+    try {
+        const response = await fetch('/api/telemetry');
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        // 1. อัปเดตเข็มวัดเดิม (ถ้ามี)
+        // setGaugeValue(data.percentage);
+
+        // 2. เรียกฟังก์ชันอัปเดต 7-Segment ตามเปอร์เซ็นต์เซนเซอร์
+        update7Segment(data.percentage);
+
+    } catch (err) {
+        console.error('Polling error:', err);
+    }
+}
+
+// วนลูปดึงข้อมูลทุกๆ 150 มิลลิวินาที
+setInterval(pollTelemetry, 150);
+```
+
+
+
+
 
 ---
 
