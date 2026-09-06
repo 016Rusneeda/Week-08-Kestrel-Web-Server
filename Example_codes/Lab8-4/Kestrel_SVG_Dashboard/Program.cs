@@ -138,9 +138,15 @@ public class SerialBridgeWorker : BackgroundService
 
             if (availablePorts.Length > 0)
             {
-                // เลือกลองเชื่อมต่อพอร์ตแรกที่ตรวจพบในระบบ
-                string targetPort = availablePorts[0];
-                _logger.LogInformation("🔌 [Worker] ตรวจพบพอร์ต {Port} -> กำลังเริ่มการเชื่อมต่อ...", targetPort);
+                _logger.LogInformation("📋 [Worker] รายการ COM Ports ในระบบ: [{Ports}]", string.Join(", ", availablePorts));
+
+                // เลือกระหว่าง: กำหนดพอร์ตเจาะจง หรือ ข้าม COM1 อัตโนมัติ
+                const string? explicitPort = null; // สามารถระบุ เช่น "COM24" ได้ตามต้องการ
+                string targetPort = explicitPort ?? 
+                                    availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? 
+                                    availablePorts[0];
+
+                _logger.LogInformation("🔌 [Worker] กำลังเริ่มการเชื่อมต่อไปยังพอร์ต {Port}...", targetPort);
 
                 try
                 {
@@ -152,6 +158,7 @@ public class SerialBridgeWorker : BackgroundService
                     };
 
                     serial.Open();
+                    serial.DiscardInBuffer();
                     _logger.LogInformation("✅ [Worker] เชื่อมต่อสำเร็จ! เข้าสู่โหมดฮาร์ดแวร์จริง (Live Mode on {Port})", targetPort);
 
                     while (!stoppingToken.IsCancellationRequested && serial.IsOpen)

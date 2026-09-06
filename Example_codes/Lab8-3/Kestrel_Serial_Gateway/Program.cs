@@ -127,6 +127,7 @@ public class SerialBridgeWorker : BackgroundService
                         NewLine = "\n"
                     };
                     serial.Open();
+                    serial.DiscardInBuffer();
                     _logger.LogInformation("✅ Connected to hardware on {Port}! Streaming telemetry...", targetPort);
 
                     while (!stoppingToken.IsCancellationRequested)
@@ -166,8 +167,11 @@ public class SerialBridgeWorker : BackgroundService
         string[] ports = SerialPort.GetPortNames();
         if (ports.Length == 0) return null;
 
-        // เลือกพอร์ต COM ที่ไม่ใช่ COM1 ถ้ามี
-        return ports.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? ports[0];
+        _logger.LogInformation("📋 รายการ COM Ports ในระบบ: [{Ports}]", string.Join(", ", ports));
+
+        // เลือกระหว่าง: กำหนดพอร์ตเจาะจง หรือ ข้าม COM1 อัตโนมัติ
+        const string? explicitPort = null; // สามารถระบุ เช่น "COM24" ได้ตามต้องการ
+        return explicitPort ?? ports.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? ports[0];
     }
 
     private async Task RunSimulationLoopAsync(CancellationToken stoppingToken)

@@ -1,10 +1,11 @@
-# ใบงานการทดลองที่ 8.3 (Labsheet 8.3): สะพานเชื่อมฮาร์ดแวร์จริงสู่เว็บเซิร์ฟเวอร์ (Hardware Serial Bridge)
+# ใบงานการทดลองที่ 8.3
+### สะพานเชื่อมฮาร์ดแวร์จริงสู่เว็บเซิร์ฟเวอร์ (Hardware Serial Bridge)
 
 > **คำชี้แจง:** ในใบงานนี้นักศึกษาจะนำสองโลกมาผสานกัน: **โลกฮาร์ดแวร์ (ESP32)** และ **โลกเว็บเซิร์ฟเวอร์ (.NET Kestrel)** โดยเขียนระบบ Background Worker เพื่อดักอ่านข้อมูลจากสาย USB เข้าสู่หน่วยความจำกลาง และเปิดเป็น REST API ให้เบราว์เซอร์เข้ามาเรียกดูได้ทันที
 
 ---
 
-## 🎯 วัตถุประสงค์การทดลอง (Objectives)
+## วัตถุประสงค์การทดลอง (Objectives)
 1. สามารถติดตั้งแพ็กเกจ `System.IO.Ports` ลงในโปรเจกต์ .NET Core ผ่าน CLI ได้
 2. สามารถสร้างและกำหนดค่า `BackgroundService` เพื่อทำงานดักรับข้อมูลแบบ Non-blocking เธรดเบื้องหลังได้
 3. เข้าใจการสร้างคลาสเก็บสถานะข้อมูลแบบปลอดภัยต่อการเข้าถึงพร้อมกัน (Thread-Safe Shared State)
@@ -13,24 +14,24 @@
 
 ---
 
-## 🛠️ เครื่องมือและสิ่งที่ต้องเตรียม (Prerequisites)
+## เครื่องมือและสิ่งที่ต้องเตรียม (Prerequisites)
 - บอร์ด ESP32 ที่ต่อวงจร Potentiometer พร้อมสาย USB
 - **สำคัญมาก:** ต้องปิดหน้าต่าง Serial Monitor / Serial Plotter ในโปรแกรมอื่นให้เรียบร้อย เพื่อปลดล็อกพอร์ต COM
 
-> ⚠️ **ข้อกำหนดสำคัญด้านการส่งงาน (Project Isolation & Anti-Cheating):**  
-> ในใบงานที่ 8.3 นักศึกษาต้องสร้างโฟลเดอร์ทำงานใหม่แยกเฉพาะเป็น **`Lab8-3`** โดยมีการฝึกปฏิบัติซ้ำทั้งสองฝั่ง:
+> **ข้อกำหนดสำคัญด้านการส่งงาน (Project Isolation & Anti-Cheating)**  
+> ในใบงานที่ 8.3 นักศึกษาต้องสร้างโฟลเดอร์ทำงานใหม่แยกเฉพาะเป็น **`Lab8-3`** โดยมีการฝึกปฏิบัติซ้ำทั้งสองฝั่ง
 > 1. **ฝั่ง ESP32:** ทำงานในโฟลเดอร์ `Lab8-3/ESP32_ADC_Stream` (คัดลอกหรือสร้างใหม่จาก Lab8-2)
 > 2. **ฝั่ง Kestrel Gateway:** สร้างโปรเจกต์ใหม่ใน `Lab8-3/Kestrel_Serial_Gateway`
 
 ---
 
-## 🧪 ขั้นตอนการทดลอง (Step-by-Step Activities)
+## ขั้นตอนการทดลอง (Step-by-Step Activities)
 
-### 🌟 กิจกรรมที่ 1: สร้างโปรเจกต์ Kestrel_Serial_Gateway และติดตั้ง System.IO.Ports
+### กิจกรรมที่ 1: สร้างโปรเจกต์ Kestrel_Serial_Gateway และติดตั้ง System.IO.Ports
 
-ฝึกฝนการสร้างโปรเจกต์ Web และติดตั้งแพ็กเกจด้วยตนเองอีกครั้ง:
+ฝึกฝนการสร้างโปรเจกต์ Web และติดตั้งแพ็กเกจด้วยตนเองอีกครั้ง
 
-1. เปิด Terminal สร้างโฟลเดอร์และโปรเจกต์ใหม่:
+1. เปิด Terminal สร้างโฟลเดอร์และโปรเจกต์ใหม่
    ```bash
    # สร้างโฟลเดอร์โปรเจกต์สำหรับ Lab 8.3
    mkdir -p Lab8-3/Kestrel_Serial_Gateway && cd Lab8-3/Kestrel_Serial_Gateway
@@ -118,13 +119,22 @@ public class SerialBridgeWorker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            // 1. ค้นหาพอร์ต COM ที่มีอยู่ในเครื่อง
+            // 1. ค้นหาพอร์ต COM ทั้งหมดที่มีอยู่ในเครื่อง
             string[] availablePorts = SerialPort.GetPortNames();
             
             if (availablePorts.Length > 0)
             {
-                // เลือกลองเชื่อมต่อพอร์ตแรกที่พบ (หรือระบุพอร์ตเช่น "COM3" ได้ตามที่ต้องการ)
-                string selectedPort = availablePorts[0];
+                // แสดงรายชื่อพอร์ตทั้งหมดที่พบ เพื่อช่วยในการ Debug
+                _logger.LogInformation("📋 รายการ COM Ports ในระบบ: [{Ports}]", string.Join(", ", availablePorts));
+
+                // เลือกระหว่าง: 
+                // 1) กำหนดพอร์ตเจาะจง เช่น "COM24" (หากต้องการระบุโดยตรง)
+                // 2) หรือให้ระบบเลือกพอร์ตแรกที่ไม่ใช่ COM1 อัตโนมัติ (ข้าม COM1 ซึ่งมักเป็นพอร์ตจำลองของเมนบอร์ด)
+                string? targetPort = "COM24"; // <-- ใส่พอร์ตของ ESP32 ที่นี่ หรือตั้งเป็น null เพื่อให้ออโต้
+                string selectedPort = targetPort ?? 
+                                       availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? 
+                                       availablePorts[0];
+
                 _logger.LogInformation("🔌 กำลังทดลองเชื่อมต่อพอร์ต: {Port}", selectedPort);
 
                 try
@@ -132,6 +142,7 @@ public class SerialBridgeWorker : BackgroundService
                     using var serial = new SerialPort(selectedPort, 115200);
                     serial.ReadTimeout = 2000;
                     serial.Open();
+                    serial.DiscardInBuffer(); // เคลียร์ขยะเก่าในบัฟเฟอร์
                     _logger.LogInformation("✅ เชื่อมต่อฮาร์ดแวร์สำเร็จบน {Port} (Live Mode)", selectedPort);
 
                     while (!stoppingToken.IsCancellationRequested && serial.IsOpen)
