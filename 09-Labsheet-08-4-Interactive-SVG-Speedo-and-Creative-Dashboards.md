@@ -317,7 +317,7 @@
 สร้างหน้าปัดตัวเลขดิจิทัลแบบ 7 ส่วนเรืองแสงสไตล์นีออนเรโทร โดยควบคุมชิ้นส่วนของเส้น segment (a, b, c, d, e, f, g) ให้เปิด-ปิดตามตัวเลขเปอร์เซ็นต์ที่อ่านได้
 
 #### 1. หลักการทำงานของ 7-Segment Display
-ตัวเลขดิจิทัล 1 หลัก ประกอบด้วยเส้นหลอดไฟ 7 เส้น เรียงตามชื่อมาตรฐานสากล:
+ตัวเลขดิจิทัล 1 หลัก ประกอบด้วยเส้นหลอดไฟ 7 เส้น เรียงตามชื่อมาตรฐานสากล
 ```text
       -- a --
      |       |
@@ -335,7 +335,7 @@
 
 #### 2. โค้ด SVG และ CSS สำหรับแทรกใน `index.html`
 
-วางโค้ด `<svg>` และ `<style>` นี้ลงในส่วนแสดงผลของหน้าเว็บ `wwwroot/index.html`:
+วางโค้ด `<svg>` และ `<style>` นี้ลงในส่วนแสดงผลของหน้าเว็บ `wwwroot/index.html`
 
 ```html
 <style>
@@ -454,8 +454,15 @@ async function pollTelemetry() {
 
         const data = await response.json();
 
-        // 1. อัปเดตเข็มวัดเดิม (ถ้ามี)
-        // setGaugeValue(data.percentage);
+        // 1. อัปเดตการ์ดตัวเลขและสถานะด้านล่าง
+        const dispRaw = document.getElementById('disp-raw');
+        if (dispRaw) dispRaw.textContent = data.rawValue;
+
+        const dispVolt = document.getElementById('disp-volt');
+        if (dispVolt) dispVolt.textContent = data.voltage.toFixed(2) + ' V';
+
+        const dispSource = document.getElementById('disp-source');
+        if (dispSource) dispSource.textContent = '📡 ' + data.dataSource;
 
         // 2. เรียกฟังก์ชันอัปเดต 7-Segment ตามเปอร์เซ็นต์เซนเซอร์
         update7Segment(data.percentage);
