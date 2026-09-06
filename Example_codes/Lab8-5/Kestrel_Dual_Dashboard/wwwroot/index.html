@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual-Channel IoT Command Center</title>
+    <style>
+        :root {
+            --bg-base: #0a0f1d;
+            --card-bg: rgba(16, 24, 40, 0.75);
+            --card-border: rgba(56, 189, 248, 0.2);
+            --cyan-glow: #00f2fe;
+            --blue-glow: #4facfe;
+            --neon-green: #00ffcc;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 15%, #132238 0%, var(--bg-base) 100%);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .header .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+        }
+
+        /* 2-Column Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 24px;
+        }
+
+        .widget-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .widget-card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .widget-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 220px;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-val {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-top: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* SVG Components Styles */
+        .needle {
+            transition: transform 0.12s cubic-bezier(0.1, 0.8, 0.3, 1);
+            transform-origin: 100px 100px;
+        }
+
+        .led {
+            transition: opacity 0.1s ease, filter 0.1s ease;
+        }
+
+        .seg {
+            fill: #1e293b;
+            opacity: 0.15;
+            transition: opacity 0.08s ease, fill 0.08s ease;
+        }
+
+        .seg.active {
+            fill: var(--neon-green);
+            opacity: 1;
+            filter: drop-shadow(0 0 6px var(--neon-green));
+        }
+
+        #water-fill {
+            transition: y 0.15s ease-out, height 0.15s ease-out;
+        }
+
+        /* System Status Bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 900px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-weight: 600;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>🎛️ Dual-Channel IoT Command Center</h1>
+        <div class="subtitle">Kestrel High-Performance Edge Web Server &bull; ESP32 Hardware Stream</div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- ============================================================== -->
+        <!-- WIDGET 1: ซ้าย (CHANNEL A)                                      -->
+        <!-- นักศึกษาปรับแต่งตามผลคำนวณรหัส 3 ตัวท้าย (1, 2, 3 หรือ 4)        -->
+        <!-- ============================================================== -->
+        <div class="widget-card" id="card-left">
+            <div class="widget-title">
+                <span>📍 CH-A:</span>
+                <span id="label-ch-a">Speedometer (Hardware Pot)</span>
+            </div>
+            
+            <div class="widget-body">
+                <!-- ตัวอย่างตัวที่ 1: Speedometer SVG -->
+                <svg width="220" height="200" viewBox="0 0 200 180" id="gauge-left">
+                    <circle cx="100" cy="100" r="85" fill="#0f172a" stroke="#1e293b" stroke-width="8"/>
+                    <path d="M 35 145 A 75 75 0 1 1 165 145" fill="none" stroke="#00f2fe" stroke-width="12" stroke-linecap="round" opacity="0.3"/>
+                    <g id="needle-left" class="needle" style="transform: rotate(-90deg);">
+                        <polygon points="96,100 100,25 104,100" fill="#ff0055" filter="drop-shadow(0 0 6px #ff0055)"/>
+                        <circle cx="100" cy="100" r="10" fill="#e2e8f0"/>
+                        <circle cx="100" cy="100" r="4" fill="#ff0055"/>
+                    </g>
+                    <text x="100" y="150" id="val-left" text-anchor="middle" fill="#00f2fe" font-size="24" font-weight="bold">0.0%</text>
+                </svg>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-label">RAW ADC</div>
+                    <div class="stat-val" id="raw-a">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">VOLTAGE</div>
+                    <div class="stat-val" id="volt-a">0.00 V</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- WIDGET 2: ขวา (CHANNEL B)                                       -->
+        <!-- นักศึกษาปรับแต่งตามผลคำนวณรหัส 3 ตัวท้าย (1, 2, 3 หรือ 4)        -->
+        <!-- ============================================================== -->
+        <div class="widget-card" id="card-right">
+            <div class="widget-title">
+                <span>📍 CH-B:</span>
+                <span id="label-ch-b">Liquid Tank (Simulated Sensor)</span>
+            </div>
+
+            <div class="widget-body">
+                <!-- ตัวอย่างตัวที่ 4: Liquid Tank SVG -->
+                <svg width="220" height="200" viewBox="0 0 220 200" id="tank-right">
+                    <defs>
+                        <linearGradient id="tank-water-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.95"/>
+                            <stop offset="100%" stop-color="#4facfe" stop-opacity="0.8"/>
+                        </linearGradient>
+                        <clipPath id="tank-mask">
+                            <rect x="65" y="15" width="70" height="130" rx="16"/>
+                        </clipPath>
+                    </defs>
+                    <rect x="65" y="15" width="70" height="130" rx="16" fill="#07101e" stroke="#1e293b" stroke-width="2"/>
+                    <g clip-path="url(#tank-mask)">
+                        <rect id="tank-fill-right" x="65" y="145" width="70" height="0" fill="url(#tank-water-grad)" filter="drop-shadow(0 0 6px #00f2fe)"/>
+                    </g>
+                    <rect x="65" y="15" width="70" height="130" rx="16" fill="none" stroke="#38bdf8" stroke-width="2.5" opacity="0.6"/>
+                    <rect x="70" y="22" width="5" height="116" rx="2" fill="#ffffff" opacity="0.15"/>
+                    <text x="145" y="24" fill="#94a3b8" font-size="10">100%</text>
+                    <text x="145" y="83" fill="#94a3b8" font-size="10">50%</text>
+                    <text x="145" y="145" fill="#94a3b8" font-size="10">0%</text>
+                    <text id="val-right" x="100" y="175" text-anchor="middle" fill="#00f2fe" font-size="22" font-weight="bold">0.0%</text>
+                </svg>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-label">RAW ADC</div>
+                    <div class="stat-val" id="raw-b">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">VOLTAGE</div>
+                    <div class="stat-val" id="volt-b">0.00 V</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Status Bar ด้านล่าง -->
+    <div class="status-bar">
+        <div>
+            <span>Data Source: </span>
+            <strong id="disp-source" style="color: #38bdf8;">Connecting...</strong>
+        </div>
+        <div class="status-pill">
+            <div class="pulse-dot"></div>
+            <span>LIVE STREAM</span>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================================
+        // 1. ฟังก์ชันช่วยเหลือสำหรับเกจ์ทั้ง 4 รูปแบบ
+        // ==============================================================
+
+        // แบบที่ 1: Speedometer (เข็มไมล์)
+        function updateSpeedo(needleId, textId, pct) {
+            const needle = document.getElementById(needleId);
+            const text = document.getElementById(textId);
+            const angle = (pct / 100.0) * 180.0 - 90.0;
+            if (needle) needle.style.transform = `rotate(${angle}deg)`;
+            if (text) text.textContent = pct.toFixed(1) + '%';
+        }
+
+        // แบบที่ 2: VU Meter (หลอด LED 10 แท่ง)
+        function updateVu(svgId, pct) {
+            const leds = document.querySelectorAll(`#${svgId} .led`);
+            const activeCount = Math.round((pct / 100.0) * leds.length);
+            leds.forEach((led, i) => {
+                if (i < activeCount) {
+                    led.style.opacity = '1.0';
+                    led.style.filter = `drop-shadow(0 0 6px ${led.getAttribute('fill')})`;
+                } else {
+                    led.style.opacity = '0.15';
+                    led.style.filter = 'none';
+                }
+            });
+        }
+
+        // แบบที่ 3: Retro 7-Segment
+        const SEG_MAP = {
+            0: [1,1,1,1,1,1,0], 1: [0,1,1,0,0,0,0], 2: [1,1,0,1,1,0,1], 3: [1,1,1,1,0,0,1],
+            4: [0,1,1,0,0,1,1], 5: [1,0,1,1,0,1,1], 6: [1,0,1,1,1,1,1], 7: [1,1,1,0,0,0,0],
+            8: [1,1,1,1,1,1,1], 9: [1,1,1,1,0,1,1]
+        };
+        const SEG_KEYS = ['a','b','c','d','e','f','g'];
+        function update7Seg(d1Id, d2Id, pct) {
+            const val = Math.min(99, Math.max(0, Math.round(pct)));
+            const digits = [Math.floor(val / 10), val % 10];
+            [d1Id, d2Id].forEach((id, idx) => {
+                const group = document.getElementById(id);
+                if (!group) return;
+                const pattern = SEG_MAP[digits[idx]] || [0,0,0,0,0,0,0];
+                SEG_KEYS.forEach((k, i) => {
+                    const el = group.querySelector('.' + k);
+                    if (el) el.classList.toggle('active', pattern[i] === 1);
+                });
+            });
+        }
+
+        // แบบที่ 4: Liquid Tank (ถังระดับน้ำ)
+        function updateTank(rectId, textId, pct, maxH = 130, botY = 145) {
+            const rect = document.getElementById(rectId);
+            const text = document.getElementById(textId);
+            const h = (Math.min(100, Math.max(0, pct)) / 100.0) * maxH;
+            if (rect) {
+                rect.setAttribute('height', h);
+                rect.setAttribute('y', botY - h);
+            }
+            if (text) text.textContent = pct.toFixed(1) + '%';
+        }
+
+        // ==============================================================
+        // 2. ลูป Polling รับข้อมูล 2 ช่อง (Channel A และ Channel B)
+        // ==============================================================
+        async function pollTelemetry() {
+            try {
+                const res = await fetch('/api/telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // อัปเดตข้อมูล Channel A (การ์ดซ้าย)
+                document.getElementById('label-ch-a').textContent = data.channelA.name;
+                document.getElementById('raw-a').textContent = data.channelA.rawValue;
+                document.getElementById('volt-a').textContent = data.channelA.voltage.toFixed(2) + ' V';
+                
+                // สั่งอัปเดตเกจ์ฝั่งซ้าย (ตัวอย่าง: Speedometer)
+                updateSpeedo('needle-left', 'val-left', data.channelA.percentage);
+
+                // อัปเดตข้อมูล Channel B (การ์ดขวา)
+                document.getElementById('label-ch-b').textContent = data.channelB.name;
+                document.getElementById('raw-b').textContent = data.channelB.rawValue;
+                document.getElementById('volt-b').textContent = data.channelB.voltage.toFixed(2) + ' V';
+                
+                // สั่งอัปเดตเกจ์ฝั่งขวา (ตัวอย่าง: Liquid Tank)
+                updateTank('tank-fill-right', 'val-right', data.channelB.percentage);
+
+                // อัปเดตแถบสถานะด้านล่าง
+                document.getElementById('disp-source').textContent = data.dataSource;
+
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }
+
+        setInterval(pollTelemetry, 150);
+    </script>
+</body>
+
+</html>
