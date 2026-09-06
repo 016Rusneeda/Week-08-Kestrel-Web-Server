@@ -483,7 +483,153 @@ setInterval(pollTelemetry, 150);
 ---
 
 ### 🛢️ ตัวเลือก C: ถังระดับของเหลวอุตสาหกรรม (Liquid Level Tank)
-สร้างภาพแท็งก์น้ำทรงกระบอก ที่ระดับน้ำสีฟ้าเรืองแสงจะกระเพื่อมและสูงขึ้น-ลดลงในถังตามระดับการหมุนตัวต้านทาน
+สร้างหน้าปัดแท็งก์น้ำทรงกระบอกอุตสาหกรรม ที่ระดับน้ำสีฟ้าเรืองแสงจะกระเพื่อมและสูงขึ้น-ลดลงในถังตามระดับการหมุนตัวต้านทาน
+
+#### 1. หลักการทำงานของ Liquid Level Tank
+- ใช้เทคนิค **SVG `<clipPath>`** เพื่อจำกัดขอบเขตของระดับของเหลว ให้อยู่เฉพาะภายในกรอบขอบโค้งของถัง ไม่ล้นออกมาภายนอก
+- ใช้ **SVG `<linearGradient>`** สร้างมิติแสงสะท้อนของของเหลวเรืองแสง (Water Glow)
+- คำนวณพิกัดระดับน้ำด้วยสมการแกน Y (เนื่องจากในระบบพิกัด SVG จุด `(0,0)` อยู่มุมซ้ายบน เมื่อระดับน้ำสูงขึ้น ค่าพิกัด `y` จะต้องลดลง):
+  $$\text{fillHeight} = \left(\frac{\text{percentage}}{100}\right) \times \text{maxHeight}$$
+  $$\text{fillY} = \text{tankBottomY} - \text{fillHeight}$$
+
+---
+
+#### 2. โค้ด SVG และ CSS สำหรับแทรกใน `index.html`
+
+วางโค้ด `<svg>` และ `<style>` นี้ลงในส่วนแสดงผลของหน้าเว็บ `wwwroot/index.html`:
+
+```html
+<style>
+    /* แอนิเมชันให้ระดับน้ำเคลื่อนที่ขึ้นลงอย่างนุ่มนวล */
+    #water-fill {
+        transition: y 0.15s ease-out, height 0.15s ease-out;
+    }
+</style>
+
+<!-- ถังระดับของเหลวอุตสาหกรรม (Liquid Level Tank) -->
+<svg width="220" height="220" viewBox="0 0 220 220" id="liquid-tank">
+    <defs>
+        <!-- การไล่เฉดสีของของเหลวสีฟ้าเรืองแสง (Neon Cyan to Blue) -->
+        <linearGradient id="water-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#4facfe" stop-opacity="0.8"/>
+        </linearGradient>
+
+        <!-- คลิปพาร์ททรงถังน้ำขอบมน (ป้องกันน้ำล้นออกนอกถัง) -->
+        <clipPath id="tank-shape">
+            <rect x="60" y="25" width="80" height="135" rx="18"/>
+        </clipPath>
+    </defs>
+
+    <!-- เงาพื้นหลังของถัง (ความลึกด้านใน) -->
+    <rect x="60" y="25" width="80" height="135" rx="18" fill="#07101e" stroke="#1e293b" stroke-width="2"/>
+
+    <!-- ระดับของเหลว (ถูกครอบด้วย clip-path ทรงถัง) -->
+    <g clip-path="url(#tank-shape)">
+        <rect id="water-fill" x="60" y="160" width="80" height="0" fill="url(#water-grad)" filter="drop-shadow(0 0 8px #00f2fe)"/>
+    </g>
+
+    <!-- ขอบกระจกถังน้ำ (Glass Body Outline) -->
+    <rect x="60" y="25" width="80" height="135" rx="18" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.6"/>
+
+    <!-- แถบสะท้อนแสงผิวกระจกด้านข้าง (Glossy Reflection) -->
+    <rect x="66" y="32" width="6" height="120" rx="3" fill="#ffffff" opacity="0.15"/>
+
+    <!-- สเกลวัดระดับขีดเปอร์เซ็นต์ (Scale Markings) -->
+    <!-- 100% -->
+    <line x1="145" y1="25" x2="155" y2="25" stroke="#94a3b8" stroke-width="2"/>
+    <text x="162" y="29" fill="#94a3b8" font-size="11" font-family="sans-serif">100%</text>
+
+    <!-- 75% -->
+    <line x1="145" y1="59" x2="151" y2="59" stroke="#64748b" stroke-width="1.5"/>
+    <text x="162" y="63" fill="#64748b" font-size="10" font-family="sans-serif">75%</text>
+
+    <!-- 50% -->
+    <line x1="145" y1="92" x2="155" y2="92" stroke="#94a3b8" stroke-width="2"/>
+    <text x="162" y="96" fill="#94a3b8" font-size="11" font-family="sans-serif">50%</text>
+
+    <!-- 25% -->
+    <line x1="145" y1="126" x2="151" y2="126" stroke="#64748b" stroke-width="1.5"/>
+    <text x="162" y="130" fill="#64748b" font-size="10" font-family="sans-serif">25%</text>
+
+    <!-- 0% -->
+    <line x1="145" y1="160" x2="155" y2="160" stroke="#94a3b8" stroke-width="2"/>
+    <text x="162" y="164" fill="#94a3b8" font-size="11" font-family="sans-serif">0%</text>
+
+    <!-- ตัวเลขแสดงเปอร์เซ็นต์แบบดิจิทัลใต้ถังน้ำ -->
+    <text id="tank-val" x="100" y="195" text-anchor="middle" fill="#00f2fe" font-family="'Segoe UI', sans-serif" font-size="22" font-weight="bold">0.0%</text>
+    <text x="100" y="212" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="11">TANK LEVEL</text>
+</svg>
+```
+
+---
+
+#### 3. โค้ด JavaScript คำนวณและปรับระดับน้ำ
+
+เพิ่มฟังก์ชัน `updateTankLevel()` ลงในแท็ก `<script>`:
+
+```javascript
+// ฟังก์ชันคำนวณและอัปเดตระดับของเหลวในถัง
+function updateTankLevel(percentage) {
+    const maxHeight = 135;   // ความสูงสูงสุดของถัง (px)
+    const tankBottomY = 160; // พิกัดแกน Y ก้นถัง
+
+    // จำกัดขอบเขต 0 - 100%
+    const clampedPct = Math.min(100, Math.max(0, percentage));
+
+    // คำนวณความสูงและพิกัด Y ของระดับน้ำ
+    const fillHeight = (clampedPct / 100.0) * maxHeight;
+    const fillY = tankBottomY - fillHeight;
+
+    const water = document.getElementById('water-fill');
+    if (water) {
+        water.setAttribute('height', fillHeight);
+        water.setAttribute('y', fillY);
+    }
+
+    // อัปเดตตัวเลขเปอร์เซ็นต์ดิจิทัลใต้ถัง
+    const tankText = document.getElementById('tank-val');
+    if (tankText) {
+        tankText.textContent = clampedPct.toFixed(1) + '%';
+    }
+}
+```
+
+---
+
+#### 4. นำไปเชื่อมต่อกับลูป Polling (`pollTelemetry`)
+
+ในฟังก์ชัน `pollTelemetry()` ให้เรียก `updateTankLevel(data.percentage)`:
+
+```javascript
+async function pollTelemetry() {
+    try {
+        const response = await fetch('/api/telemetry');
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        // 1. อัปเดตการ์ดตัวเลขและสถานะด้านล่าง
+        const dispRaw = document.getElementById('disp-raw');
+        if (dispRaw) dispRaw.textContent = data.rawValue;
+
+        const dispVolt = document.getElementById('disp-volt');
+        if (dispVolt) dispVolt.textContent = data.voltage.toFixed(2) + ' V';
+
+        const dispSource = document.getElementById('disp-source');
+        if (dispSource) dispSource.textContent = '📡 ' + data.dataSource;
+
+        // 2. เรียกฟังก์ชันอัปเดตระดับน้ำในถัง
+        updateTankLevel(data.percentage);
+
+    } catch (err) {
+        console.error('Polling error:', err);
+    }
+}
+
+// วนลูปดึงข้อมูลทุกๆ 150 มิลลิวินาที
+setInterval(pollTelemetry, 150);
+```
 
 ---
 
