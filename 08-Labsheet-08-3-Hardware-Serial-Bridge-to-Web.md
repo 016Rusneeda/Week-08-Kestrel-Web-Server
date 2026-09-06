@@ -124,16 +124,26 @@ public class SerialBridgeWorker : BackgroundService
             
             if (availablePorts.Length > 0)
             {
-                // แสดงรายชื่อพอร์ตทั้งหมดที่พบ เพื่อช่วยในการ Debug
                 _logger.LogInformation("📋 รายการ COM Ports ในระบบ: [{Ports}]", string.Join(", ", availablePorts));
 
-                // เลือกระหว่าง: 
-                // 1) กำหนดพอร์ตเจาะจง เช่น "COM24" (หากต้องการระบุโดยตรง)
-                // 2) หรือให้ระบบเลือกพอร์ตแรกที่ไม่ใช่ COM1 อัตโนมัติ (ข้าม COM1 ซึ่งมักเป็นพอร์ตจำลองของเมนบอร์ด)
-                string? targetPort = "COM24"; // <-- ใส่พอร์ตของ ESP32 ที่นี่ หรือตั้งเป็น null เพื่อให้ออโต้
-                string selectedPort = targetPort ?? 
-                                       availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? 
-                                       availablePorts[0];
+                // เลือกระหว่าง:
+                // 1) ระบุพอร์ตเจาะจง เช่น "COM24" (ถ้ามีอยู่ในระบบ)
+                // 2) หรือให้ระบบเลือกพอร์ตแรกที่ไม่ใช่ COM1 อัตโนมัติ
+                string? targetPort = "COM24"; // <-- ใส่พอร์ตที่ต้องการ หรือตั้งเป็น null เพื่อให้ออโต้
+                
+                string? selectedPort = null;
+                if (!string.IsNullOrEmpty(targetPort) && availablePorts.Contains(targetPort, StringComparer.OrdinalIgnoreCase))
+                {
+                    selectedPort = targetPort;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(targetPort))
+                    {
+                        _logger.LogWarning("⚠️ ไม่พบพอร์ต {Target} ในระบบ! ระบบจะเลือกพอร์ตอื่นให้อัตโนมัติ...", targetPort);
+                    }
+                    selectedPort = availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? availablePorts[0];
+                }
 
                 _logger.LogInformation("🔌 กำลังทดลองเชื่อมต่อพอร์ต: {Port}", selectedPort);
 
@@ -179,12 +189,14 @@ public class SerialBridgeWorker : BackgroundService
             }
 
             // 2. โหมดจำลองสัญญาณอัตโนมัติ (Fallback Simulation Mode)
-            // ถ้าไม่มีสายเสียบอยู่ ระบบจะสร้างคลื่น Sine Wave อัตโนมัติให้ทดสอบต่อได้
-            double t = Environment.TickCount64 / 1000.0;
-            int simAdc = (int)((Math.Sin(t * 1.5) + 1.0) / 2.0 * 4095);
-            _stateStore.Update(simAdc, "Simulation Mode (Sine Wave)");
-
-            await Task.Delay(100, stoppingToken);
+            // วนจำลองสัญญาณ 2 วินาที (20 รอบ รอบละ 100ms) ก่อนจะกลับไปตรวจเช็คพอร์ตใหม่ เพื่อไม่ให้ Log แสดงผลรัวเกินไป
+            for (int i = 0; i < 20 && !stoppingToken.IsCancellationRequested; i++)
+            {
+                double t = Environment.TickCount64 / 1000.0;
+                int simAdc = (int)((Math.Sin(t * 1.5) + 1.0) / 2.0 * 4095);
+                _stateStore.Update(simAdc, "Simulation Mode (Sine Wave)");
+                await Task.Delay(100, stoppingToken);
+            }
         }
     }
 }

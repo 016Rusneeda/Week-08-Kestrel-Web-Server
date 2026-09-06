@@ -142,9 +142,15 @@ public class SerialBridgeWorker : BackgroundService
 
                 // เลือกระหว่าง: กำหนดพอร์ตเจาะจง หรือ ข้าม COM1 อัตโนมัติ
                 const string? explicitPort = null; // สามารถระบุ เช่น "COM24" ได้ตามต้องการ
-                string targetPort = explicitPort ?? 
-                                    availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? 
-                                    availablePorts[0];
+                string targetPort;
+                if (!string.IsNullOrEmpty(explicitPort) && availablePorts.Contains(explicitPort, StringComparer.OrdinalIgnoreCase))
+                {
+                    targetPort = explicitPort;
+                }
+                else
+                {
+                    targetPort = availablePorts.FirstOrDefault(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase)) ?? availablePorts[0];
+                }
 
                 _logger.LogInformation("🔌 [Worker] กำลังเริ่มการเชื่อมต่อไปยังพอร์ต {Port}...", targetPort);
 
