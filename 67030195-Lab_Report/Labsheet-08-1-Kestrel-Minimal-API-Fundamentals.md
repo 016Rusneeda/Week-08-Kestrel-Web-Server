@@ -64,7 +64,9 @@
 2. กลับไปที่หน้าเบราว์เซอร์แล้วกดปุ่ม **Refresh (F5)** สังเกตว่าเกิดอะไรขึ้น และอธิบายสั้นๆ ว่าทำไมจึงเป็นเช่นนั้น
    - **คำตอบ** เบราว์เซอร์แสดงหน้าจอข้อผิดพลาด # This site can’t be reached
  เนื่องจากการกด `Ctrl + C` เป็นการสั่งหยุดการทำงานของโปรเซส Kestrel Web Server ทำให้ไม่มีเซิร์ฟเวอร์คอยรอรับและตอบกลับคำขอ (HTTP Request) จากเบราว์เซอร์ที่พอร์ตนั้นๆ
- ![[Pasted image 20260907101124.png]]
+ 
+ <img width="1535" height="812" alt="image" src="https://github.com/user-attachments/assets/c5521022-9e82-4b95-91b0-199480208b52" />
+
 
 ---
 
@@ -86,7 +88,10 @@
    ```
 
 3. บันทึกไฟล์ สั่ง `dotnet run` อีกครั้ง แล้วกด Refresh บนเบราว์เซอร์เพื่อดูผลลัพธ์
-![[Pasted image 20260907093355.png]]
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/500898ec-6416-45b3-b6a0-21f6a3f00fc3" />
+
+
 
 
 ---
@@ -119,7 +124,8 @@
    ```
 
 > เราไม่ได้สั่ง `json_encode()` หรือแปลงสตริงเลย เพียงแค่เราส่ง C# Anonymous Object ออกมา Kestrel จะทำการ Serialize เป็น JSON และแปะ Header `Content-Type: application/json` ให้อัตโนมัติ!
-![[Pasted image 20260907094154.png]]
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ac8a5fe9-2160-4ee7-ba8d-38cd5be7b13d" />
 
 ---
 
@@ -163,8 +169,8 @@
 [xx:xx:xx] LED Control: on
 [xx:xx:xx] LED Control: off
 ```
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c3ff2775-7a6d-4acf-b8df-8e8b8c5e13eb" />
 
-![[Pasted image 20260907095049.png]]
 
 ---
 
@@ -181,7 +187,8 @@
    - `timestamp`= เวลาปัจจุบันของเซิร์ฟเวอร์ (`DateTime.Now.ToString(...)`)
 
  **หลักฐานการส่งงาน** บันทึกภาพหน้าจอเบราว์เซอร์ที่เปิดแสดงผล JSON จาก `/api/student` พร้อมโค้ดใน VS Code ลงในรายงานผลการทดลอง
- ![[Pasted image 20260907095940.png]]
+<img width="1535" height="816" alt="image" src="https://github.com/user-attachments/assets/50ca3ccb-780e-4808-9c5b-1d2cd50a0336" />
+
 
 ---
 
