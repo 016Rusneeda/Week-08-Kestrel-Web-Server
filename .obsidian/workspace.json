@@ -94,7 +94,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "c71356380a4b4c48",
@@ -129,7 +129,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "67030195-Lab_Report/Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
+                "file": "06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -172,7 +172,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "67030195-Lab_Report/Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
+                "file": "06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -180,13 +180,23 @@
               "icon": "lucide-list",
               "title": "Outline"
             }
+          },
+          {
+            "id": "94d4cca7cedbc27b",
+            "type": "leaf",
+            "state": {
+              "type": "git-view",
+              "state": {},
+              "icon": "git-pull-request",
+              "title": "Source Control"
+            }
           }
-        ]
+        ],
+        "currentTab": 5
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -196,21 +206,30 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "obsidian-git:Open Git source control": false
     }
   },
   "active": "a44ee9f468cf88a6",
   "lastOpenFiles": [
+    "Pasted image 20260907101124.png",
+    "Pasted image 20260907095940.png",
+    "Pasted image 20260907095049.png",
+    "Pasted image 20260907094617.png",
+    "Pasted image 20260907094522.png",
+    "Pasted image 20260907094154.png",
+    "Pasted image 20260907093355.png",
+    "06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
+    "Pasted image 20260907093327.png",
+    "10-Labsheet-08-5-Dual-Sensor-Command-Center.md",
+    "67030195-Lab_Report/Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
     "67030195-Lab_Report/Labsheet-08-4-Interactive-SVG-Speedo-and-Creative-Dashboards.md",
     "67030195-Lab_Report/Labsheet-08-5-Dual-Sensor-Command-Center.md",
     "67030195-Lab_Report/Labsheet-08-3-Hardware-Serial-Bridge-to-Web.md",
     "67030195-Lab_Report/Labsheet-08-2-ESP32-ADC-and-Serial-Stream.md",
-    "67030195-Lab_Report/Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
-    "10-Labsheet-08-5-Dual-Sensor-Command-Center.md",
     "09-Labsheet-08-4-Interactive-SVG-Speedo-and-Creative-Dashboards.md",
     "08-Labsheet-08-3-Hardware-Serial-Bridge-to-Web.md",
     "07-Labsheet-08-2-ESP32-ADC-and-Serial-Stream.md",
-    "06-Labsheet-08-1-Kestrel-Minimal-API-Fundamentals.md",
     "67030195-Lab_Report"
   ]
 }
